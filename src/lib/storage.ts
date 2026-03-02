@@ -1,53 +1,48 @@
 import { Meal, MealRating } from '@/types';
 
-const STORAGE_KEY = 'xom-meals';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.xomware.com';
+const AUTH_HASH = process.env.NEXT_PUBLIC_AUTH_HASH || '';
 
-function getMeals(): Meal[] {
-  if (typeof window === 'undefined') return [];
-  const raw = localStorage.getItem(STORAGE_KEY);
-  return raw ? JSON.parse(raw) : [];
-}
-
-function saveMeals(meals: Meal[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(meals));
+async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}/meals${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Auth-Hash': AUTH_HASH,
+      ...options?.headers,
+    },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`API error ${res.status}: ${body}`);
+  }
+  // DELETE may return 204
+  if (res.status === 204) return undefined as T;
+  return res.json();
 }
 
 export const mealsApi = {
-  getAll: async (): Promise<Meal[]> => getMeals(),
+  getAll: async (): Promise<Meal[]> => apiFetch<Meal[]>(''),
 
-  add: async (meal: Omit<Meal, 'id' | 'createdAt' | 'cooked'>): Promise<Meal> => {
-    const meals = getMeals();
-    const newMeal: Meal = {
-      ...meal,
-      id: crypto.randomUUID(),
-      cooked: false,
-      createdAt: new Date().toISOString(),
-    };
-    meals.push(newMeal);
-    saveMeals(meals);
-    return newMeal;
-  },
+  add: async (meal: Omit<Meal, 'id' | 'createdAt' | 'cooked'>): Promise<Meal> =>
+    apiFetch<Meal>('', {
+      method: 'POST',
+      body: JSON.stringify(meal),
+    }),
 
-  toggleCooked: async (id: string): Promise<Meal> => {
-    const meals = getMeals();
-    const idx = meals.findIndex(m => m.id === id);
-    if (idx === -1) throw new Error('Meal not found');
-    meals[idx].cooked = !meals[idx].cooked;
-    saveMeals(meals);
-    return meals[idx];
-  },
+  toggleCooked: async (id: string): Promise<Meal> =>
+    apiFetch<Meal>(`/${id}/toggle-cooked`, {
+      method: 'PATCH',
+    }),
 
-  rate: async (id: string, rating: MealRating): Promise<Meal> => {
-    const meals = getMeals();
-    const idx = meals.findIndex(m => m.id === id);
-    if (idx === -1) throw new Error('Meal not found');
-    meals[idx].rating = rating;
-    saveMeals(meals);
-    return meals[idx];
-  },
+  rate: async (id: string, rating: MealRating): Promise<Meal> =>
+    apiFetch<Meal>(`/${id}/rate`, {
+      method: 'PATCH',
+      body: JSON.stringify(rating),
+    }),
 
-  delete: async (id: string): Promise<void> => {
-    const meals = getMeals();
-    saveMeals(meals.filter(m => m.id !== id));
-  },
+  delete: async (id: string): Promise<void> =>
+    apiFetch<void>(`/${id}`, {
+      method: 'DELETE',
+    }),
 };
