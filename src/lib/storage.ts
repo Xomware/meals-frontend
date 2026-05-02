@@ -1,4 +1,4 @@
-import { Meal, MealRating } from '@/types';
+import { Meal, MealRating, MealComment } from '@/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.xomware.com';
 const AUTH_HASH = process.env.NEXT_PUBLIC_AUTH_HASH || '';
@@ -16,10 +16,16 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     const body = await res.text().catch(() => '');
     throw new Error(`API error ${res.status}: ${body}`);
   }
-  // DELETE may return 204
   if (res.status === 204) return undefined as T;
   return res.json();
 }
+
+type EditableMealFields = Partial<
+  Pick<
+    Meal,
+    'name' | 'timeMinutes' | 'difficulty' | 'proteinSource' | 'ingredients' | 'instructions' | 'macros'
+  >
+>;
 
 export const mealsApi = {
   getAll: async (): Promise<Meal[]> => apiFetch<Meal[]>(''),
@@ -28,6 +34,12 @@ export const mealsApi = {
     apiFetch<Meal>('', {
       method: 'POST',
       body: JSON.stringify(meal),
+    }),
+
+  edit: async (id: string, fields: EditableMealFields): Promise<Meal> =>
+    apiFetch<Meal>(`/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(fields),
     }),
 
   toggleCooked: async (id: string): Promise<Meal> =>
@@ -43,6 +55,22 @@ export const mealsApi = {
 
   delete: async (id: string): Promise<void> =>
     apiFetch<void>(`/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+export const commentsApi = {
+  list: async (mealId: string): Promise<MealComment[]> =>
+    apiFetch<MealComment[]>(`/${mealId}/comments`),
+
+  add: async (mealId: string, body: string): Promise<MealComment> =>
+    apiFetch<MealComment>(`/${mealId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    }),
+
+  delete: async (mealId: string, commentId: string): Promise<void> =>
+    apiFetch<void>(`/${mealId}/comments/${commentId}`, {
       method: 'DELETE',
     }),
 };
