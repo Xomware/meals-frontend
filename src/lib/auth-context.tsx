@@ -144,8 +144,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = useCallback<AuthContextValue['signUp']>(
     async (email, password, preferredUsername) => {
       try {
+        // The user pool uses alias_attributes = ["email", "preferred_username"]
+        // (Option B), which means the underlying Cognito Username CANNOT be in
+        // email format. We generate an opaque UUID — users still sign IN with
+        // email (alias resolution handles it).
+        const opaqueUsername =
+          typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
         await amplifySignUp({
-          username: email,
+          username: opaqueUsername,
           password,
           options: {
             userAttributes: {
