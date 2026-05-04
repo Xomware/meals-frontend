@@ -1,17 +1,48 @@
 import { Meal, MealRating, MealComment } from '@/types';
+import { getJwtToken } from './auth-context';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.xomappetit.xomware.com';
-const AUTH_HASH = process.env.NEXT_PUBLIC_AUTH_HASH || '';
+
+/**
+ * Auth-related failure that callers (or a global handler) can react to —
+ * e.g. clearing the Amplify session and bouncing to /auth/sign-in.
+ */
+export class AuthRequiredError extends Error {
+  constructor(message = 'Authentication required') {
+    super(message);
+    this.name = 'AuthRequiredError';
+  }
+}
+
+async function authHeaders(): Promise<Record<string, string>> {
+  const token = await getJwtToken();
+  if (!token) throw new AuthRequiredError();
+  return { Authorization: `Bearer ${token}` };
+}
+
+function handleUnauthorized() {
+  if (typeof window === 'undefined') return;
+  // Defer so callers can finish their stack frame; redirect wins the race.
+  setTimeout(() => {
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.replace(`/auth/sign-in?next=${next}`);
+  }, 0);
+}
 
 async function apiPost<T>(verb: string, body?: unknown): Promise<T> {
+  const auth = await authHeaders();
   const res = await fetch(`${API_BASE}/meals/${verb}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Auth-Hash': AUTH_HASH,
+      ...auth,
     },
     body: body == null ? undefined : JSON.stringify(body),
   });
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new AuthRequiredError();
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`API error ${res.status}: ${text}`);
@@ -21,12 +52,15 @@ async function apiPost<T>(verb: string, body?: unknown): Promise<T> {
 }
 
 async function apiGet<T>(verb: string): Promise<T> {
+  const auth = await authHeaders();
   const res = await fetch(`${API_BASE}/meals/${verb}`, {
     method: 'GET',
-    headers: {
-      'X-Auth-Hash': AUTH_HASH,
-    },
+    headers: { ...auth },
   });
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new AuthRequiredError();
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`API error ${res.status}: ${text}`);

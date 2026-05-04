@@ -1,6 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { useMeals } from '@/lib/hooks';
+import { useRequireAuth } from '@/lib/auth-context';
 import { Filters, Meal, ViewMode } from '@/types';
 import Header from '@/components/Header';
 import FilterBar from '@/components/FilterBar';
@@ -21,6 +22,7 @@ const defaultFilters: Filters = {
 };
 
 export default function Home() {
+  const { isAuthenticated, isLoading: authLoading } = useRequireAuth();
   const {
     meals,
     isLoading,
@@ -61,6 +63,17 @@ export default function Home() {
   const rating = ratingMeal
     ? meals.find((m) => m.id === ratingMeal.id) ?? null
     : null;
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-coral-400 text-3xl animate-pulse" aria-hidden="true">🔥</div>
+          <div className="text-zinc-500 text-sm mt-2 italic">heating up the kitchen…</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

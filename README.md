@@ -53,12 +53,24 @@ The app will be available at [http://localhost:3000](http://localhost:3000).
 
 ## Environment Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `NEXT_PUBLIC_API_URL` | Base URL for the Meals API | `https://api.xomware.com` |
-| `NEXT_PUBLIC_AUTH_HASH` | Auth hash for API requests | `your-auth-hash-here` |
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `NEXT_PUBLIC_API_URL` | yes | Base URL for the Meals API | `https://api.xomappetit.xomware.com` |
+| `NEXT_PUBLIC_COGNITO_USER_POOL_ID` | yes | Cognito user pool ID | `us-east-1_xxxxxxxxx` |
+| `NEXT_PUBLIC_COGNITO_CLIENT_ID` | yes | xomappetit Cognito app client ID | — |
+| `NEXT_PUBLIC_COGNITO_DOMAIN` | optional | Hosted UI domain (needed for federated sign-in) | `xomware-auth.auth.us-east-1.amazoncookie.com` |
+| `NEXT_PUBLIC_AWS_REGION` | yes | AWS region for the user pool | `us-east-1` |
+| `NEXT_PUBLIC_GA4_MEASUREMENT_ID` | optional | Google Analytics 4 measurement ID — when unset, analytics no-op | `G-XXXXXXXXXX` |
 
-Both are required. See `.env.example` for a template.
+See `.env.example` for a template.
+
+## Authentication
+
+The app uses **AWS Cognito** via **Amplify v6** for auth. Sessions are JWT-based; every API request goes out with `Authorization: Bearer <id-token>`.
+
+- Sign-up / sign-in / forgot-password live under `/auth/*`.
+- Hosted UI federated sign-in (Google) lands at `/auth/callback`. The Google button is currently stubbed — Phase 4 wires the IdP.
+- Route protection is **client-side** because the app is a Next.js static export — middleware is not available. Protected pages call `useRequireAuth()` from `src/lib/auth-context.tsx`, which redirects unauthenticated users to `/auth/sign-in?next=<path>`.
 
 ## Project Structure
 
@@ -83,7 +95,7 @@ src/
 
 ## API Integration
 
-The app communicates with a REST API at `api.xomware.com` backed by API Gateway + DynamoDB. All requests include the auth hash for authentication.
+The app communicates with a REST API at `api.xomappetit.xomware.com` backed by API Gateway + DynamoDB. All requests carry a Cognito-issued JWT in the `Authorization: Bearer <token>` header.
 
 Key endpoints:
 - `GET /meals` — Fetch all meals

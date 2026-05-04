@@ -34,7 +34,11 @@ jobs:
       - name: Build (Next.js static export)
         env:
           NEXT_PUBLIC_API_URL: https://api.xomappetit.xomware.com
-          NEXT_PUBLIC_AUTH_HASH: ${{ secrets.PUBLIC_AUTH_HASH }}
+          NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ secrets.COGNITO_USER_POOL_ID }}
+          NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ secrets.COGNITO_CLIENT_ID }}
+          NEXT_PUBLIC_COGNITO_DOMAIN: ${{ secrets.COGNITO_DOMAIN }}
+          NEXT_PUBLIC_AWS_REGION: us-east-1
+          NEXT_PUBLIC_GA4_MEASUREMENT_ID: ${{ secrets.GA4_MEASUREMENT_ID }}
         run: npm run build
 
       - name: Configure AWS credentials

@@ -2,6 +2,7 @@ node_modules
 .next
 out
 .env.local
+tsconfig.tsbuildinfo
 
 # Claude Code session memory (personal, not shared)
 .claude/memory/
