@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ViewMode } from '@/types';
 import { useAuth } from '@/lib/auth-context';
+import { useProfile } from '@/lib/use-profile';
 
 interface Props {
   mealCount: number;
@@ -68,6 +69,7 @@ export default function Header({ mealCount, cookedCount, view, onViewChange, onA
 
 function UserMenu() {
   const { user, isAuthenticated, signOut } = useAuth();
+  const { profile } = useProfile();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -99,7 +101,12 @@ function UserMenu() {
     );
   }
 
-  const handle = user.preferredUsername;
+  // Prefer the freshly-loaded profile; fall back to the auth context (avoids
+  // an empty header during the brief window before /users/me resolves).
+  const handle = profile?.preferredUsername ?? user.preferredUsername;
+  const label = profile?.displayName?.trim() || handle;
+  const avatarUrl = profile?.avatarUrl ?? null;
+  const initial = (label || handle).charAt(0);
 
   return (
     <div ref={ref} className="relative">
@@ -108,20 +115,38 @@ function UserMenu() {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-coral-500/50 text-zinc-100 px-3 py-2 rounded-lg text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-coral-400/40"
+        aria-label={`Account menu for ${label}`}
+        className="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-coral-500/50 text-zinc-100 px-2.5 py-1.5 rounded-lg text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-coral-400/40"
       >
-        <span className="h-6 w-6 rounded-full grid place-items-center bg-gradient-to-br from-coral-500 to-flame-500 text-white text-xs font-black uppercase">
-          {handle.charAt(0)}
+        <span className="h-7 w-7 rounded-full overflow-hidden bg-zinc-800 grid place-items-center shrink-0">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="h-full w-full grid place-items-center bg-gradient-to-br from-coral-500 to-flame-500 text-white text-xs font-black uppercase">
+              {initial}
+            </span>
+          )}
         </span>
-        <span className="max-w-[8rem] truncate">@{handle}</span>
-        <span className="text-zinc-500">▾</span>
+        <span className="max-w-[8rem] truncate">{label}</span>
+        <span className="text-zinc-500" aria-hidden="true">▾</span>
       </button>
 
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-zinc-800 bg-zinc-900 shadow-lg shadow-black/40 overflow-hidden z-40"
+          className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-zinc-800 bg-zinc-900 shadow-lg shadow-black/40 overflow-hidden z-40"
         >
+          <div className="px-3 py-2 border-b border-zinc-800">
+            <div className="text-sm font-semibold text-zinc-100 truncate">
+              {label}
+            </div>
+            <div className="text-xs text-zinc-500 truncate">@{handle}</div>
+          </div>
           <Link
             role="menuitem"
             href="/profile"

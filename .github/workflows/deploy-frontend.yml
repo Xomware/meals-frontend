@@ -44,6 +44,8 @@ jobs:
             echo "NEXT_PUBLIC_COGNITO_USER_POOL_ID=$(aws ssm get-parameter --name /xomware/shared/cognito/user-pool-id --query Parameter.Value --output text)"
             echo "NEXT_PUBLIC_COGNITO_CLIENT_ID=$(aws ssm get-parameter --name /xomware/shared/cognito/clients/xomappetit-id --query Parameter.Value --output text)"
             echo "NEXT_PUBLIC_COGNITO_DOMAIN=$(aws ssm get-parameter --name /xomware/shared/cognito/hosted-ui-domain --query Parameter.Value --output text)"
+            echo "NEXT_PUBLIC_USERS_API_URL=$(aws ssm get-parameter --name /xomware/shared/users-api/url --query Parameter.Value --output text)"
+            echo "NEXT_PUBLIC_AVATARS_CDN_URL=$(aws ssm get-parameter --name /xomware/shared/avatars/cdn-url --query Parameter.Value --output text)"
           } >> "$GITHUB_ENV"
 
       - name: Build (Next.js static export)
