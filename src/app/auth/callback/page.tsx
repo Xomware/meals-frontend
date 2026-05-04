@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import AuthShell from '@/components/AuthShell';
+import Loader from '@/components/Loader';
 
 /**
  * Cognito Hosted UI redirects here with `?code=...` after a successful
@@ -52,8 +53,8 @@ export default function CallbackPage() {
 
   return (
     <AuthShell title="Signing you in…" subtitle="Stand by, chef.">
-      <div className="flex items-center justify-center py-6 text-coral-400 text-3xl animate-pulse" aria-live="polite">
-        🔥
+      <div aria-live="polite">
+        <Loader caption="" />
       </div>
     </AuthShell>
   );

@@ -5,6 +5,7 @@ import { useRequireAuth } from '@/lib/auth-context';
 import { useProfile } from '@/lib/use-profile';
 import EditProfileModal from '@/components/EditProfileModal';
 import { UserProfile } from '@/lib/users';
+import Loader from '@/components/Loader';
 
 export default function ProfilePage() {
   const { isAuthenticated, isLoading: authLoading } = useRequireAuth();
@@ -222,18 +223,7 @@ function StatsGrid() {
 }
 
 function ProfileLoading() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="text-coral-400 text-3xl animate-pulse" aria-hidden="true">
-          🔥
-        </div>
-        <div className="text-zinc-500 text-sm mt-2 italic">
-          plating the profile…
-        </div>
-      </div>
-    </div>
-  );
+  return <Loader fullscreen caption="plating the profile…" />;
 }
 
 function ProfileError({ message }: { message: string }) {

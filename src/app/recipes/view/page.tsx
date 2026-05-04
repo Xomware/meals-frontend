@@ -10,10 +10,11 @@ import { RatingStars } from '@/components/RatingStars';
 import { PrivacyBadge } from '@/components/PrivacyBadge';
 import { Ingredient, ingredientLabel } from '@/types';
 import { recipesApi } from '@/lib/api';
+import Loader from '@/components/Loader';
 
 export default function RecipeViewPage() {
   return (
-    <Suspense fallback={<FullPageMessage emoji="🔥" caption="loading recipe…" />}>
+    <Suspense fallback={<Loader fullscreen caption="loading recipe…" />}>
       <RecipeViewInner />
     </Suspense>
   );
@@ -31,7 +32,7 @@ function RecipeViewInner() {
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
 
   if (authLoading || !isAuthenticated) {
-    return <FullPageMessage emoji="🔥" caption="heating up the kitchen…" />;
+    return <Loader fullscreen />;
   }
 
   if (!recipeId) {
@@ -41,7 +42,7 @@ function RecipeViewInner() {
   }
 
   if (isLoading) {
-    return <FullPageMessage emoji="🔥" caption="loading recipe…" />;
+    return <Loader fullscreen caption="loading recipe…" />;
   }
 
   if (error || !recipe) {

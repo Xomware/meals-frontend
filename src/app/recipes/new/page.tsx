@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRequireAuth } from '@/lib/auth-context';
 import { useRecipes } from '@/lib/hooks';
 import { RecipeForm, RecipeFormValues } from '@/components/RecipeForm';
+import Loader from '@/components/Loader';
 
 export default function NewRecipePage() {
   const router = useRouter();
@@ -11,15 +12,7 @@ export default function NewRecipePage() {
   const { createRecipe } = useRecipes();
 
   if (isLoading || !isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-coral-400 text-3xl animate-pulse" aria-hidden="true">
-            🔥
-          </div>
-        </div>
-      </div>
-    );
+    return <Loader fullscreen />;
   }
 
   const handleSubmit = async (values: RecipeFormValues) => {

@@ -1,5 +1,7 @@
 'use client';
 import { ReactNode } from 'react';
+import Link from 'next/link';
+import Brand from './Brand';
 
 interface Props {
   title: string;
@@ -10,18 +12,22 @@ interface Props {
 
 /**
  * Centered card layout shared by every /auth/* page.
- * Matches the Xom Appétit brand: dark zinc base, coral chef-stamp heading,
- * subtle gradient frame on the card.
+ * Matches the Xom Appétit brand: dark zinc base, banner mark above the
+ * card, subtle gradient frame.
  */
 export default function AuthShell({ title, subtitle, children, footer }: Props) {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-zinc-950">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <h1 className="font-display text-4xl font-black tracking-tight">
-            <span className="chef-stamp">Xom Appétit</span>
-          </h1>
-          <div className="mt-2 inline-block h-1 w-14 rounded-full bg-gradient-to-r from-coral-400 to-flame-500" />
+          <Link
+            href="/"
+            aria-label="Xom Appétit home"
+            className="inline-block focus:outline-none focus:ring-2 focus:ring-coral-400/50 rounded"
+          >
+            <Brand height={64} />
+          </Link>
+          <div className="mt-3 inline-block h-1 w-14 rounded-full bg-gradient-to-r from-coral-400 to-flame-500" />
         </div>
 
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 backdrop-blur p-6 sm:p-8 brand-stamp">

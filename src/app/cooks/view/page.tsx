@@ -6,6 +6,7 @@ import { useRequireAuth, useAuth } from '@/lib/auth-context';
 import { useCook, useRecipe } from '@/lib/hooks';
 import { CookForm, CookFormValues } from '@/components/CookForm';
 import { RatingStars } from '@/components/RatingStars';
+import Loader from '@/components/Loader';
 
 export default function CookViewPage() {
   return (
@@ -250,16 +251,7 @@ function formatDate(iso: string): string {
 }
 
 function Fallback({ caption = 'loading…' }: { caption?: string } = {}) {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="text-coral-400 text-3xl animate-pulse" aria-hidden="true">
-          🔥
-        </div>
-        <div className="text-zinc-500 text-sm mt-2 italic">{caption}</div>
-      </div>
-    </div>
-  );
+  return <Loader fullscreen caption={caption} />;
 }
 
 function FullPageMessage({ caption, backHref }: { caption: string; backHref: string }) {

@@ -4,6 +4,7 @@ import { useRequireAuth } from '@/lib/auth-context';
 import { useRecipes } from '@/lib/hooks';
 import { RecipeCard } from '@/components/RecipeCard';
 import { MASCOTS, mascotFor } from '@/components/Mascot';
+import Loader from '@/components/Loader';
 
 export default function Home() {
   const { isAuthenticated, isLoading: authLoading } = useRequireAuth();
@@ -33,7 +34,7 @@ export default function Home() {
       </div>
 
       {!dataReady || authLoading ? (
-        <PageLoading />
+        <Loader />
       ) : recipes.length === 0 ? (
         <EmptyState />
       ) : (
@@ -44,17 +45,6 @@ export default function Home() {
         </div>
       )}
     </main>
-  );
-}
-
-function PageLoading() {
-  return (
-    <div className="text-center py-16">
-      <div className="text-coral-400 text-3xl animate-pulse" aria-hidden="true">
-        🔥
-      </div>
-      <div className="text-zinc-500 text-sm mt-2 italic">heating up the kitchen…</div>
-    </div>
   );
 }
 

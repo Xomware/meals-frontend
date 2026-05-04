@@ -4,13 +4,18 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useProfile } from '@/lib/use-profile';
+import Brand from './Brand';
 
 export default function Header() {
   return (
     <header className="border-b border-zinc-800 bg-zinc-950/95 backdrop-blur sticky top-0 z-30">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-        <Link href="/" className="inline-block focus:outline-none focus:ring-2 focus:ring-coral-400/50 rounded">
-          <span className="text-xl font-black tracking-tight chef-stamp">Xom Appétit</span>
+        <Link
+          href="/"
+          aria-label="Xom Appétit home"
+          className="inline-flex items-center focus:outline-none focus:ring-2 focus:ring-coral-400/50 rounded"
+        >
+          <Brand height={32} />
         </Link>
         <div className="flex items-center gap-2">
           <NavLinks />
