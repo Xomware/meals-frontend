@@ -49,3 +49,20 @@
   margin-top: 6px;
   background: linear-gradient(90deg, var(--color-coral-400), var(--color-flame-500));
 }
+
+/* Brand-mark loader pulse — used by <Loader />.
+ * Soft fade + scale wave so the X feels alive without being jittery. */
+@keyframes brand-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+}
+
+.animate-brand-pulse {
+  animation: brand-pulse 1.6s ease-in-out infinite;
+}

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRequireAuth, useAuth } from '@/lib/auth-context';
 import { useMyCooks, useRecipes } from '@/lib/hooks';
 import { Cook, Recipe } from '@/types';
+import Loader from '@/components/Loader';
 
 export default function CooksPage() {
   const { isAuthenticated, isLoading: authLoading } = useRequireAuth();
@@ -24,10 +25,7 @@ export default function CooksPage() {
       </div>
 
       {!dataReady || authLoading ? (
-        <div className="text-center py-16">
-          <div className="text-coral-400 text-3xl animate-pulse" aria-hidden="true">🔥</div>
-          <div className="text-zinc-500 text-sm mt-2 italic">heating up the kitchen…</div>
-        </div>
+        <Loader />
       ) : cooks.length === 0 ? (
         <EmptyCooks />
       ) : (

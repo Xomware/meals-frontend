@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useRequireAuth } from '@/lib/auth-context';
 import { useRecipe, logCook } from '@/lib/hooks';
 import { CookForm, CookFormValues } from '@/components/CookForm';
+import Loader from '@/components/Loader';
 
 export default function NewCookPage() {
   return (
@@ -78,13 +79,7 @@ function NewCookInner() {
 }
 
 function Fallback() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-coral-400 text-3xl animate-pulse" aria-hidden="true">
-        🔥
-      </div>
-    </div>
-  );
+  return <Loader fullscreen />;
 }
 
 function FullPageMessage({ caption, backHref }: { caption: string; backHref: string }) {
