@@ -1,10 +1,10 @@
 'use client';
 import { useState } from 'react';
-import { useMealComments } from '@/lib/hooks';
-import { mascotFor, MASCOTS } from './Mascot';
+import { useRecipeComments } from '@/lib/hooks';
+import { useAuth } from '@/lib/auth-context';
 
 interface Props {
-  mealId: string;
+  recipeId: string;
 }
 
 const inputCls =
@@ -22,8 +22,14 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export default function CommentsSection({ mealId }: Props) {
-  const { comments, isLoading, addComment, deleteComment } = useMealComments(mealId);
+function shortUserId(id: string): string {
+  if (id.length <= 8) return id;
+  return id.slice(0, 6) + '…';
+}
+
+export function RecipeComments({ recipeId }: Props) {
+  const { user } = useAuth();
+  const { comments, isLoading, addComment, deleteComment } = useRecipeComments(recipeId);
   const [draft, setDraft] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,12 +66,12 @@ export default function CommentsSection({ mealId }: Props) {
         <div className="text-zinc-500 text-sm italic">Loading…</div>
       ) : comments.length === 0 ? (
         <div className="text-zinc-500 text-sm italic border border-dashed border-zinc-800 rounded-lg p-3">
-          Drop a note when you cook this — what worked, what flopped, what you'd swap next time.
+          Drop a note when you cook this — what worked, what flopped, what you&apos;d swap.
         </div>
       ) : (
         <ul className="space-y-2">
           {comments.map((c) => {
-            const mascot = MASCOTS[mascotFor(c.commentId)];
+            const mine = user?.sub === c.userId;
             return (
               <li
                 key={c.commentId}
@@ -73,32 +79,33 @@ export default function CommentsSection({ mealId }: Props) {
               >
                 <div className="flex items-start gap-2">
                   <span
-                    className="h-7 w-7 rounded-full grid place-items-center text-sm flex-shrink-0 mt-0.5"
-                    style={{
-                      background: `${mascot.accent}22`,
-                      border: `1px solid ${mascot.accent}66`,
-                    }}
+                    className="h-7 w-7 rounded-full grid place-items-center text-xs flex-shrink-0 mt-0.5 bg-gradient-to-br from-coral-500/30 to-flame-500/30 border border-coral-500/40 text-coral-200 font-bold uppercase"
                     aria-hidden="true"
                   >
-                    {mascot.emoji}
+                    {shortUserId(c.userId).charAt(0)}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs text-zinc-500 mb-0.5">
-                      <span className="text-zinc-300 font-semibold">{mascot.name}</span>
+                      <span className="text-zinc-300 font-semibold">
+                        {mine ? 'You' : `user ${shortUserId(c.userId)}`}
+                      </span>
                       <span className="mx-1.5 text-zinc-700">·</span>
                       {timeAgo(c.createdAt)}
                     </div>
                     <div className="text-sm text-zinc-200 whitespace-pre-wrap break-words">
-                      {c.body}
+                      {c.text}
                     </div>
                   </div>
-                  <button
-                    onClick={() => deleteComment(c.commentId)}
-                    className="text-zinc-600 hover:text-coral-400 text-xs opacity-0 group-hover:opacity-100 transition"
-                    aria-label="Delete comment"
-                  >
-                    delete
-                  </button>
+                  {mine && (
+                    <button
+                      type="button"
+                      onClick={() => deleteComment(c.commentId)}
+                      className="text-zinc-600 hover:text-coral-400 text-xs opacity-0 group-hover:opacity-100 focus:opacity-100 transition"
+                      aria-label="Delete comment"
+                    >
+                      delete
+                    </button>
+                  )}
                 </div>
               </li>
             );
@@ -115,17 +122,13 @@ export default function CommentsSection({ mealId }: Props) {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
         />
-        {error && (
-          <div className="text-xs text-coral-300">{error}</div>
-        )}
+        {error && <div className="text-xs text-coral-300">{error}</div>}
         <div className="flex justify-between items-center">
-          <span className="text-xs text-zinc-600">
-            {draft.length}/2000
-          </span>
+          <span className="text-xs text-zinc-600">{draft.length}/2000</span>
           <button
             type="submit"
             disabled={submitting || !draft.trim()}
-            className="text-xs font-semibold uppercase tracking-wider bg-coral-500 hover:bg-coral-400 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded-md transition"
+            className="text-xs font-semibold uppercase tracking-wider bg-coral-500 hover:bg-coral-400 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded-md transition focus:outline-none focus:ring-2 focus:ring-coral-400/50"
           >
             {submitting ? 'Posting…' : 'Post note'}
           </button>

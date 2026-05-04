@@ -4,49 +4,56 @@ export interface Ingredient {
   unit: string | null;
 }
 
-export interface Meal {
-  id: string;
+export interface Macros {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+export type Difficulty = 'Easy' | 'Medium' | 'Hard';
+
+export type Privacy = 'public' | 'friends' | 'private';
+
+export interface Recipe {
+  recipeId: string;
+  authorUserId: string;
   name: string;
+  description: string;
   timeMinutes: number;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  difficulty: Difficulty;
   proteinSource: string;
   ingredients: (string | Ingredient)[];
-  instructions?: string[];
-  macros: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-  };
-  cooked: boolean;
-  rating?: MealRating;
+  instructions: string[];
+  macros: Macros;
+  privacy: Privacy;
+  cookCount: number;
+  avgRating: number;
+  ratingCount: number;
   createdAt: string;
+  updatedAt: string;
 }
 
-export interface MealRating {
-  taste: number;
-  ease: number;
-  speed: number;
-  healthiness: number;
+export interface Cook {
+  cookId: string;
+  recipeId: string;
+  cookedAt: string;
+  chefs: string[];
+  diners: string[];
   notes: string;
+  photoUrl: string | null;
+  rating: number | null;
+  loggedByUserId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface MealComment {
-  mealId: string;
+export interface RecipeComment {
+  recipeId: string;
   commentId: string;
   userId: string;
-  body: string;
+  text: string;
   createdAt: string;
-}
-
-export type ViewMode = 'table' | 'card';
-
-export interface Filters {
-  proteinSource: string;
-  difficulty: string;
-  cookedStatus: string;
-  timeMin: number;
-  timeMax: number;
 }
 
 export const ingredientName = (i: string | Ingredient): string =>
@@ -59,4 +66,9 @@ export const ingredientLabel = (i: string | Ingredient): string => {
   if (i.unit) parts.push(i.unit);
   parts.push(i.name);
   return parts.join(' ');
+};
+
+export const normalizeIngredient = (i: string | Ingredient): Ingredient => {
+  if (typeof i === 'string') return { name: i, quantity: null, unit: null };
+  return i;
 };

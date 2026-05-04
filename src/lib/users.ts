@@ -1,4 +1,4 @@
-import { AuthRequiredError } from './storage';
+import { AuthRequiredError } from './api';
 import { getJwtToken } from './auth-context';
 
 const USERS_API_BASE =
