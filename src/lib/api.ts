@@ -1,0 +1,121 @@
+import { Cook, Recipe, RecipeComment } from '@/types';
+import { getJwtToken } from './auth-context';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.xomappetit.xomware.com';
+
+export class AuthRequiredError extends Error {
+  constructor(message = 'Authentication required') {
+    super(message);
+    this.name = 'AuthRequiredError';
+  }
+}
+
+async function authHeaders(): Promise<Record<string, string>> {
+  const token = await getJwtToken();
+  if (!token) throw new AuthRequiredError();
+  return { Authorization: `Bearer ${token}` };
+}
+
+function handleUnauthorized() {
+  if (typeof window === 'undefined') return;
+  setTimeout(() => {
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.replace(`/auth/sign-in?next=${next}`);
+  }, 0);
+}
+
+async function apiPost<T>(path: string, body?: unknown): Promise<T> {
+  const auth = await authHeaders();
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...auth,
+    },
+    body: body == null ? undefined : JSON.stringify(body),
+  });
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new AuthRequiredError();
+  }
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`API error ${res.status}: ${text}`);
+  }
+  if (res.status === 204) return undefined as T;
+  return res.json();
+}
+
+export interface CreateRecipeInput {
+  name: string;
+  description?: string;
+  timeMinutes?: number;
+  difficulty?: Recipe['difficulty'];
+  proteinSource?: string;
+  ingredients?: Recipe['ingredients'];
+  instructions?: string[];
+  macros?: Recipe['macros'];
+  privacy?: Recipe['privacy'];
+}
+
+export type EditRecipeInput = Partial<CreateRecipeInput>;
+
+export interface RateRecipeResult {
+  recipeId: string;
+  userId: string;
+  rating: number;
+  avgRating: number;
+  ratingCount: number;
+}
+
+export const recipesApi = {
+  list: (): Promise<Recipe[]> => apiPost<Recipe[]>('/recipes/list'),
+  create: (body: CreateRecipeInput): Promise<Recipe> =>
+    apiPost<Recipe>('/recipes/create', body),
+  get: (recipeId: string): Promise<Recipe> =>
+    apiPost<Recipe>('/recipes/get', { recipeId }),
+  edit: (recipeId: string, fields: EditRecipeInput): Promise<Recipe> =>
+    apiPost<Recipe>('/recipes/edit', { recipeId, ...fields }),
+  delete: (recipeId: string): Promise<void> =>
+    apiPost<void>('/recipes/delete', { recipeId }),
+  rate: (recipeId: string, rating: number): Promise<RateRecipeResult> =>
+    apiPost<RateRecipeResult>('/recipes/rate', { recipeId, rating }),
+};
+
+export const commentsApi = {
+  list: (recipeId: string): Promise<RecipeComment[]> =>
+    apiPost<RecipeComment[]>('/recipes/comments-list', { recipeId }),
+  add: (recipeId: string, text: string): Promise<RecipeComment> =>
+    apiPost<RecipeComment>('/recipes/comment-add', { recipeId, text }),
+  delete: (recipeId: string, commentId: string): Promise<void> =>
+    apiPost<void>('/recipes/comment-delete', { recipeId, commentId }),
+};
+
+export interface LogCookInput {
+  recipeId: string;
+  cookedAt?: string;
+  chefs?: string[];
+  diners?: string[];
+  notes?: string;
+  photoUrl?: string | null;
+  rating?: number | null;
+}
+
+export interface EditCookInput {
+  notes?: string;
+  photoUrl?: string | null;
+  rating?: number | null;
+}
+
+export type CookListScope = 'mine' | 'recipe';
+
+export const cooksApi = {
+  log: (body: LogCookInput): Promise<Cook> => apiPost<Cook>('/cooks/log', body),
+  list: (scope: CookListScope, recipeId?: string): Promise<Cook[]> =>
+    apiPost<Cook[]>('/cooks/list', { scope, ...(recipeId ? { recipeId } : {}) }),
+  get: (cookId: string): Promise<Cook> => apiPost<Cook>('/cooks/get', { cookId }),
+  edit: (cookId: string, fields: EditCookInput): Promise<Cook> =>
+    apiPost<Cook>('/cooks/edit', { cookId, ...fields }),
+  delete: (cookId: string): Promise<void> =>
+    apiPost<void>('/cooks/delete', { cookId }),
+};

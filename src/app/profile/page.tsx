@@ -61,7 +61,7 @@ function ProfileHeader() {
           href="/"
           className="text-xs text-zinc-400 hover:text-coral-300 transition uppercase tracking-wider font-semibold"
         >
-          Back to meals
+          Back to recipes
         </Link>
       </div>
     </header>
@@ -251,7 +251,7 @@ function ProfileError({ message }: { message: string }) {
           href="/"
           className="mt-5 inline-block bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-coral-500/50 text-zinc-100 px-4 py-2 rounded-lg text-sm font-semibold transition"
         >
-          Back to meals
+          Back to recipes
         </Link>
       </div>
     </div>

@@ -1,70 +1,167 @@
 import useSWR, { mutate } from 'swr';
-import { mealsApi, commentsApi } from './storage';
+import {
+  CreateRecipeInput,
+  EditCookInput,
+  EditRecipeInput,
+  LogCookInput,
+  commentsApi,
+  cooksApi,
+  recipesApi,
+} from './api';
 import { useAuth } from './auth-context';
-import { Meal, MealRating } from '@/types';
 
-const MEALS_KEY = 'meals';
-const commentsKey = (mealId: string) => ['comments', mealId] as const;
+const RECIPES_KEY = 'recipes';
+const recipeKey = (id: string) => ['recipe', id] as const;
+const commentsKey = (id: string) => ['recipe-comments', id] as const;
+const COOKS_MINE_KEY = 'cooks:mine';
+const cooksForRecipeKey = (id: string) => ['cooks:recipe', id] as const;
+const cookKey = (id: string) => ['cook', id] as const;
 
-type EditableMealFields = Parameters<typeof mealsApi.edit>[1];
-
-export function useMeals() {
+export function useRecipes() {
   const { isAuthenticated } = useAuth();
-  // Gate the SWR key on auth state so unauthenticated renders never fire a
-  // fetch that would throw AuthRequiredError. Once the auth context resolves
-  // and isAuthenticated flips true, SWR auto-fetches.
   const { data, error, isLoading } = useSWR(
-    isAuthenticated ? MEALS_KEY : null,
-    mealsApi.getAll,
+    isAuthenticated ? RECIPES_KEY : null,
+    recipesApi.list,
   );
 
   return {
-    meals: data ?? [],
+    recipes: data ?? [],
     isLoading: isAuthenticated ? isLoading : false,
     error,
-    addMeal: async (meal: Omit<Meal, 'id' | 'createdAt' | 'cooked'>) => {
-      await mealsApi.add(meal);
-      mutate(MEALS_KEY);
+    createRecipe: async (body: CreateRecipeInput) => {
+      const created = await recipesApi.create(body);
+      mutate(RECIPES_KEY);
+      return created;
     },
-    editMeal: async (id: string, fields: EditableMealFields) => {
-      await mealsApi.edit(id, fields);
-      mutate(MEALS_KEY);
+    editRecipe: async (id: string, fields: EditRecipeInput) => {
+      const updated = await recipesApi.edit(id, fields);
+      mutate(RECIPES_KEY);
+      mutate(recipeKey(id));
+      return updated;
     },
-    toggleCooked: async (id: string) => {
-      await mealsApi.toggleCooked(id);
-      mutate(MEALS_KEY);
-    },
-    rateMeal: async (id: string, rating: MealRating) => {
-      await mealsApi.rate(id, rating);
-      mutate(MEALS_KEY);
-    },
-    deleteMeal: async (id: string) => {
-      await mealsApi.delete(id);
-      mutate(MEALS_KEY);
+    deleteRecipe: async (id: string) => {
+      await recipesApi.delete(id);
+      mutate(RECIPES_KEY);
     },
   };
 }
 
-export function useMealComments(mealId: string | null) {
+export function useRecipe(recipeId: string | null) {
   const { isAuthenticated } = useAuth();
-  const key = mealId && isAuthenticated ? commentsKey(mealId) : null;
+  const key = recipeId && isAuthenticated ? recipeKey(recipeId) : null;
+  const { data, error, isLoading, mutate: mutateOne } = useSWR(key, () =>
+    recipeId ? recipesApi.get(recipeId) : Promise.reject(new Error('no id')),
+  );
+
+  return {
+    recipe: data,
+    isLoading,
+    error,
+    refresh: () => mutateOne(),
+    rate: async (rating: number) => {
+      if (!recipeId) return;
+      await recipesApi.rate(recipeId, rating);
+      mutateOne();
+      mutate(RECIPES_KEY);
+    },
+    edit: async (fields: EditRecipeInput) => {
+      if (!recipeId) return;
+      const updated = await recipesApi.edit(recipeId, fields);
+      mutateOne(updated, { revalidate: false });
+      mutate(RECIPES_KEY);
+      return updated;
+    },
+    remove: async () => {
+      if (!recipeId) return;
+      await recipesApi.delete(recipeId);
+      mutate(RECIPES_KEY);
+    },
+  };
+}
+
+export function useRecipeComments(recipeId: string | null) {
+  const { isAuthenticated } = useAuth();
+  const key = recipeId && isAuthenticated ? commentsKey(recipeId) : null;
   const { data, error, isLoading } = useSWR(key, () =>
-    mealId ? commentsApi.list(mealId) : Promise.resolve([])
+    recipeId ? commentsApi.list(recipeId) : Promise.resolve([]),
   );
 
   return {
     comments: data ?? [],
     isLoading,
     error,
-    addComment: async (body: string) => {
-      if (!mealId) return;
-      await commentsApi.add(mealId, body);
-      mutate(commentsKey(mealId));
+    addComment: async (text: string) => {
+      if (!recipeId) return;
+      await commentsApi.add(recipeId, text);
+      mutate(commentsKey(recipeId));
     },
     deleteComment: async (commentId: string) => {
-      if (!mealId) return;
-      await commentsApi.delete(mealId, commentId);
-      mutate(commentsKey(mealId));
+      if (!recipeId) return;
+      await commentsApi.delete(recipeId, commentId);
+      mutate(commentsKey(recipeId));
     },
   };
+}
+
+export function useMyCooks() {
+  const { isAuthenticated } = useAuth();
+  const { data, error, isLoading } = useSWR(
+    isAuthenticated ? COOKS_MINE_KEY : null,
+    () => cooksApi.list('mine'),
+  );
+
+  return {
+    cooks: data ?? [],
+    isLoading: isAuthenticated ? isLoading : false,
+    error,
+  };
+}
+
+export function useRecipeCooks(recipeId: string | null) {
+  const { isAuthenticated } = useAuth();
+  const key = recipeId && isAuthenticated ? cooksForRecipeKey(recipeId) : null;
+  const { data, error, isLoading } = useSWR(key, () =>
+    recipeId ? cooksApi.list('recipe', recipeId) : Promise.resolve([]),
+  );
+
+  return {
+    cooks: data ?? [],
+    isLoading,
+    error,
+  };
+}
+
+export function useCook(cookId: string | null) {
+  const { isAuthenticated } = useAuth();
+  const key = cookId && isAuthenticated ? cookKey(cookId) : null;
+  const { data, error, isLoading, mutate: mutateOne } = useSWR(key, () =>
+    cookId ? cooksApi.get(cookId) : Promise.reject(new Error('no id')),
+  );
+
+  return {
+    cook: data,
+    isLoading,
+    error,
+    edit: async (fields: EditCookInput) => {
+      if (!cookId) return;
+      const updated = await cooksApi.edit(cookId, fields);
+      mutateOne(updated, { revalidate: false });
+      mutate(COOKS_MINE_KEY);
+      return updated;
+    },
+    remove: async () => {
+      if (!cookId) return;
+      await cooksApi.delete(cookId);
+      mutate(COOKS_MINE_KEY);
+    },
+  };
+}
+
+export async function logCook(body: LogCookInput) {
+  const cook = await cooksApi.log(body);
+  mutate(COOKS_MINE_KEY);
+  mutate(cooksForRecipeKey(body.recipeId));
+  mutate(recipeKey(body.recipeId));
+  mutate(RECIPES_KEY);
+  return cook;
 }
