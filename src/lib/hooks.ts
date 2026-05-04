@@ -1,5 +1,6 @@
 import useSWR, { mutate } from 'swr';
 import { mealsApi, commentsApi } from './storage';
+import { useAuth } from './auth-context';
 import { Meal, MealRating } from '@/types';
 
 const MEALS_KEY = 'meals';
@@ -8,11 +9,18 @@ const commentsKey = (mealId: string) => ['comments', mealId] as const;
 type EditableMealFields = Parameters<typeof mealsApi.edit>[1];
 
 export function useMeals() {
-  const { data, error, isLoading } = useSWR(MEALS_KEY, mealsApi.getAll);
+  const { isAuthenticated } = useAuth();
+  // Gate the SWR key on auth state so unauthenticated renders never fire a
+  // fetch that would throw AuthRequiredError. Once the auth context resolves
+  // and isAuthenticated flips true, SWR auto-fetches.
+  const { data, error, isLoading } = useSWR(
+    isAuthenticated ? MEALS_KEY : null,
+    mealsApi.getAll,
+  );
 
   return {
     meals: data ?? [],
-    isLoading,
+    isLoading: isAuthenticated ? isLoading : false,
     error,
     addMeal: async (meal: Omit<Meal, 'id' | 'createdAt' | 'cooked'>) => {
       await mealsApi.add(meal);
@@ -38,7 +46,8 @@ export function useMeals() {
 }
 
 export function useMealComments(mealId: string | null) {
-  const key = mealId ? commentsKey(mealId) : null;
+  const { isAuthenticated } = useAuth();
+  const key = mealId && isAuthenticated ? commentsKey(mealId) : null;
   const { data, error, isLoading } = useSWR(key, () =>
     mealId ? commentsApi.list(mealId) : Promise.resolve([])
   );

@@ -1,0 +1,292 @@
+'use client';
+
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { Amplify } from 'aws-amplify';
+import {
+  confirmSignUp as amplifyConfirmSignUp,
+  fetchAuthSession,
+  fetchUserAttributes,
+  getCurrentUser,
+  resendSignUpCode,
+  signIn as amplifySignIn,
+  signInWithRedirect,
+  signOut as amplifySignOut,
+  signUp as amplifySignUp,
+} from 'aws-amplify/auth';
+import { identify } from './analytics';
+
+// ---- Amplify config (runs once at module load on the client) ----
+
+const userPoolId = process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID;
+const userPoolClientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID;
+const cognitoDomain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
+
+if (typeof window !== 'undefined' && userPoolId && userPoolClientId) {
+  const origin = window.location.origin;
+  Amplify.configure({
+    Auth: {
+      Cognito: {
+        userPoolId,
+        userPoolClientId,
+        loginWith: cognitoDomain
+          ? {
+              oauth: {
+                domain: cognitoDomain,
+                scopes: ['email', 'openid', 'profile'],
+                redirectSignIn: [`${origin}/auth/callback`],
+                redirectSignOut: [origin],
+                responseType: 'code',
+              },
+            }
+          : undefined,
+      },
+    },
+  });
+}
+
+// ---- Types ----
+
+export interface AuthUser {
+  sub: string;
+  email: string;
+  preferredUsername: string;
+}
+
+export type SignInResult =
+  | { kind: 'success' }
+  | { kind: 'requires-confirmation'; email: string }
+  | { kind: 'error'; message: string };
+
+export type SignUpResult =
+  | { kind: 'success'; email: string }
+  | { kind: 'error'; message: string };
+
+export type SimpleResult = { kind: 'success' } | { kind: 'error'; message: string };
+
+interface AuthContextValue {
+  user: AuthUser | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  signIn: (email: string, password: string) => Promise<SignInResult>;
+  signUp: (email: string, password: string, preferredUsername: string) => Promise<SignUpResult>;
+  confirmSignUp: (email: string, code: string) => Promise<SimpleResult>;
+  resendCode: (email: string) => Promise<SimpleResult>;
+  signInWithGoogle: () => Promise<void>;
+  signOut: () => Promise<void>;
+  getJwt: () => Promise<string | null>;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+// ---- Provider ----
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadUser = useCallback(async () => {
+    try {
+      const current = await getCurrentUser();
+      const attrs = await fetchUserAttributes();
+      const next: AuthUser = {
+        sub: current.userId,
+        email: attrs.email ?? '',
+        preferredUsername: attrs.preferred_username ?? current.username,
+      };
+      setUser(next);
+      identify(next.sub);
+      return next;
+    } catch {
+      setUser(null);
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      await loadUser();
+      if (!cancelled) setIsLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loadUser]);
+
+  const signIn = useCallback<AuthContextValue['signIn']>(
+    async (email, password) => {
+      try {
+        const res = await amplifySignIn({ username: email, password });
+        if (res.isSignedIn) {
+          await loadUser();
+          return { kind: 'success' };
+        }
+        const step = res.nextStep?.signInStep;
+        if (step === 'CONFIRM_SIGN_UP') {
+          return { kind: 'requires-confirmation', email };
+        }
+        return { kind: 'error', message: `Additional step required: ${step ?? 'unknown'}` };
+      } catch (err) {
+        return { kind: 'error', message: errorMessage(err) };
+      }
+    },
+    [loadUser],
+  );
+
+  const signUp = useCallback<AuthContextValue['signUp']>(
+    async (email, password, preferredUsername) => {
+      try {
+        await amplifySignUp({
+          username: email,
+          password,
+          options: {
+            userAttributes: {
+              email,
+              preferred_username: preferredUsername,
+            },
+          },
+        });
+        return { kind: 'success', email };
+      } catch (err) {
+        return { kind: 'error', message: errorMessage(err) };
+      }
+    },
+    [],
+  );
+
+  const confirmSignUp = useCallback<AuthContextValue['confirmSignUp']>(
+    async (email, code) => {
+      try {
+        await amplifyConfirmSignUp({ username: email, confirmationCode: code });
+        return { kind: 'success' };
+      } catch (err) {
+        return { kind: 'error', message: errorMessage(err) };
+      }
+    },
+    [],
+  );
+
+  const resendCode = useCallback<AuthContextValue['resendCode']>(async (email) => {
+    try {
+      await resendSignUpCode({ username: email });
+      return { kind: 'success' };
+    } catch (err) {
+      return { kind: 'error', message: errorMessage(err) };
+    }
+  }, []);
+
+  const signInWithGoogle = useCallback(async () => {
+    // Stub: Phase 4 wires the Google IdP. For now this is a no-op so the
+    // button can render without crashing. If/when Google is provisioned in
+    // the user pool, swap this for:
+    //   await signInWithRedirect({ provider: 'Google' });
+    // Reference imported to keep TS happy if we wire it later.
+    void signInWithRedirect;
+    if (typeof window !== 'undefined') {
+      // Soft signal during local testing; production button can show a tooltip.
+      console.info('[auth] Google sign-in is not wired yet (Phase 4).');
+    }
+  }, []);
+
+  const signOut = useCallback(async () => {
+    try {
+      await amplifySignOut();
+    } finally {
+      setUser(null);
+    }
+  }, []);
+
+  const getJwt = useCallback(async () => {
+    try {
+      const session = await fetchAuthSession();
+      const token = session.tokens?.idToken?.toString();
+      return token ?? null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      isLoading,
+      isAuthenticated: !!user,
+      signIn,
+      signUp,
+      confirmSignUp,
+      resendCode,
+      signInWithGoogle,
+      signOut,
+      getJwt,
+    }),
+    [
+      user,
+      isLoading,
+      signIn,
+      signUp,
+      confirmSignUp,
+      resendCode,
+      signInWithGoogle,
+      signOut,
+      getJwt,
+    ],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+// ---- Hooks ----
+
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within <AuthProvider>');
+  return ctx;
+}
+
+/**
+ * Client-side route guard. Use in protected pages — redirects to /auth/sign-in
+ * (preserving the requested path) when no user is present.
+ *
+ * Static export means we cannot rely on Next.js middleware, so this hook
+ * is the canonical gate.
+ */
+export function useRequireAuth() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (isAuthenticated) return;
+    if (typeof window === 'undefined') return;
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.replace(`/auth/sign-in?next=${next}`);
+  }, [isAuthenticated, isLoading]);
+
+  return { isAuthenticated, isLoading };
+}
+
+// ---- Helpers ----
+
+function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return 'Unexpected error';
+}
+
+// Re-export so callers can grab a JWT outside of React (e.g. storage.ts) without
+// reaching into Amplify directly.
+export async function getJwtToken(): Promise<string | null> {
+  try {
+    const session = await fetchAuthSession();
+    return session.tokens?.idToken?.toString() ?? null;
+  } catch {
+    return null;
+  }
+}
