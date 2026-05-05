@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useProfile } from '@/lib/use-profile';
+import { useFriends } from '@/lib/hooks';
 import Brand from './Brand';
 
 export default function Header() {
@@ -33,6 +34,12 @@ function NavLinks() {
   const isFriends = pathname.startsWith('/friends');
   const isCooks = pathname.startsWith('/cooks');
 
+  // Pulse a coral dot on the Friends tab whenever there's an unanswered
+  // incoming request. SWR caches this across pages so opening any route
+  // reveals the count without a flicker.
+  const { incomingPending } = useFriends();
+  const friendsBadge = incomingPending.length;
+
   return (
     <nav className="flex items-center gap-1 bg-zinc-900 rounded-lg p-0.5 border border-zinc-800">
       <NavLink href="/" active={isFeed}>
@@ -41,7 +48,7 @@ function NavLinks() {
       <NavLink href="/discover" active={isDiscover}>
         Discover
       </NavLink>
-      <NavLink href="/friends" active={isFriends}>
+      <NavLink href="/friends" active={isFriends} badge={friendsBadge}>
         Friends
       </NavLink>
       <NavLink href="/cooks" active={isCooks}>
@@ -51,7 +58,7 @@ function NavLinks() {
   );
 }
 
-function NavLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+function NavLink({ href, active, badge, children }: { href: string; active: boolean; badge?: number; children: React.ReactNode }) {
   const cls = active
     ? 'bg-zinc-800 text-coral-300'
     : 'text-zinc-400 hover:text-white hover:bg-zinc-800';
@@ -59,9 +66,17 @@ function NavLink({ href, active, children }: { href: string; active: boolean; ch
     <Link
       href={href}
       aria-current={active ? 'page' : undefined}
-      className={`px-3 py-1.5 rounded-md text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-coral-400/50 ${cls}`}
+      className={`relative px-3 py-1.5 rounded-md text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-coral-400/50 ${cls}`}
     >
       {children}
+      {badge && badge > 0 ? (
+        <span
+          aria-label={`${badge} pending`}
+          className="absolute -top-1 -right-1 min-w-[1rem] h-4 px-1 rounded-full bg-coral-500 text-[10px] leading-4 font-bold text-white text-center"
+        >
+          {badge > 9 ? '9+' : badge}
+        </span>
+      ) : null}
     </Link>
   );
 }
