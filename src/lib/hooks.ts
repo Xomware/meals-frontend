@@ -250,7 +250,7 @@ export function useRecipe(recipeId: string | null) {
     isLoading,
     error,
     refresh: () => mutateOne(),
-    rate: async (axes: { rating?: number; spiciness?: number }) => {
+    rate: async (axes: import('./api').RateAxes) => {
       if (!recipeId) return;
       await recipesApi.rate(recipeId, axes);
       mutateOne();
