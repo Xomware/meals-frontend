@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
@@ -7,6 +7,19 @@ import AppShell from '@/components/AppShell';
 export const metadata: Metadata = {
   title: 'Xom Appétit',
   description: 'Cook it. Log it. Rate it. Get roasted.',
+};
+
+// Without this, mobile browsers fall back to a ~980px desktop viewport, so
+// content overflows and users have to pinch-zoom to read. Locking zoom
+// matches the user's "feels like a real app" goal — pages render at the
+// device width and stay there.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  themeColor: '#0a0a0a',
 };
 
 const GA4_ID = process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID;
