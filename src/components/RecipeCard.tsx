@@ -71,6 +71,20 @@ export function RecipeCard({ recipe }: Props) {
             <span className="text-zinc-600">no ratings yet</span>
           )}
         </div>
+        {recipe.authorHandle && (
+          <button
+            type="button"
+            onClick={(e) => {
+              // Stop the parent <Link> from also navigating to the recipe detail.
+              e.preventDefault();
+              e.stopPropagation();
+              window.location.assign(`/u/view?handle=${encodeURIComponent(recipe.authorHandle!)}`);
+            }}
+            className="text-xs text-zinc-500 hover:text-coral-300 transition shrink-0"
+          >
+            @{recipe.authorHandle}
+          </button>
+        )}
       </div>
     </Link>
   );

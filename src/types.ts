@@ -18,6 +18,8 @@ export type Privacy = 'public' | 'friends' | 'private';
 export interface Recipe {
   recipeId: string;
   authorUserId: string;
+  /** Denormalized handle (lowercase) of the author at create time. May be null for older rows or federated users without a handle yet. */
+  authorHandle: string | null;
   name: string;
   description: string;
   timeMinutes: number;
