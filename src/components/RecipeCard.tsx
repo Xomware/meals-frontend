@@ -1,11 +1,15 @@
 'use client';
 import Link from 'next/link';
 import { Recipe } from '@/types';
+import { PublicUserProfile } from '@/lib/users';
 import { PrivacyBadge } from './PrivacyBadge';
 import LikeButton from './LikeButton';
 
 interface Props {
   recipe: Recipe;
+  /** Public profile of the recipe author, when resolved. Card renders
+   *  a fallback (`@handle` or "a chef") when not provided yet. */
+  author?: PublicUserProfile | null;
 }
 
 function diffColor(d: string) {
@@ -16,7 +20,11 @@ function diffColor(d: string) {
     : 'text-coral-400';
 }
 
-export function RecipeCard({ recipe }: Props) {
+export function RecipeCard({ recipe, author }: Props) {
+  const handle = author?.preferredUsername ?? recipe.authorHandle ?? null;
+  const name = author?.displayName ?? null;
+  const avatarUrl = author?.avatarUrl ?? null;
+  const initial = (name || handle || '?').charAt(0).toUpperCase();
   return (
     <Link
       href={`/recipes/view?id=${encodeURIComponent(recipe.recipeId)}`}
@@ -73,17 +81,28 @@ export function RecipeCard({ recipe }: Props) {
             </span>
           )}
         </div>
-        {recipe.authorHandle && (
+        {handle && (
           <button
             type="button"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              window.location.assign(`/u/view?handle=${encodeURIComponent(recipe.authorHandle!)}`);
+              window.location.assign(`/u/view?handle=${encodeURIComponent(handle)}`);
             }}
-            className="text-xs text-zinc-500 hover:text-coral-300 transition shrink-0"
+            className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-coral-300 transition shrink-0 min-w-0"
+            title={name || `@${handle}`}
           >
-            @{recipe.authorHandle}
+            <span className="h-5 w-5 rounded-full overflow-hidden bg-zinc-800 grid place-items-center shrink-0">
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-[9px] font-black text-white bg-gradient-to-br from-coral-500 to-flame-500 h-full w-full grid place-items-center">
+                  {initial}
+                </span>
+              )}
+            </span>
+            <span className="truncate max-w-[6rem]">{name || `@${handle}`}</span>
           </button>
         )}
       </div>

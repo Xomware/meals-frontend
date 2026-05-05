@@ -111,6 +111,20 @@ export const usersApi = {
     apiPost<PresignAvatarResponse>('/users/presign-avatar', { contentType }),
 
   /**
+   * Look up multiple users by sub at once. Used to enrich feed/discover
+   * recipe cards with the author's display name + avatar in a single
+   * round trip per page load. Returns the public slice only — no email
+   * etc.
+   */
+  batchGet: async (userIds: string[]): Promise<PublicUserProfile[]> => {
+    if (userIds.length === 0) return [];
+    const res = await apiPost<{ users: PublicUserProfile[] }>('/users/batch-get', {
+      userIds,
+    });
+    return res.users;
+  },
+
+  /**
    * Full upload flow: ask the API for a presigned PUT, push the raw file body
    * directly to S3, and return the CDN URL. Callers persist `finalUrl` via
    * `usersApi.edit({ avatarUrl })`.

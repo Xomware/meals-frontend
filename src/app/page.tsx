@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useRequireAuth } from '@/lib/auth-context';
 import { useFeed } from '@/lib/hooks';
+import { useUsersById } from '@/lib/use-users-by-id';
 import { RecipeCard } from '@/components/RecipeCard';
 import { CookActivityCard } from '@/components/CookActivityCard';
 import { MASCOTS, mascotFor } from '@/components/Mascot';
@@ -19,6 +20,15 @@ export default function Feed() {
   const { isAuthenticated, isLoading: authLoading } = useRequireAuth();
   const { items, friendCount, isLoading } = useFeed();
   const dataReady = isAuthenticated && !isLoading;
+
+  // Collect every userId we'll need to render (recipe authors + cook chefs)
+  // and resolve them in a single round trip via /users/batch-get.
+  const userIds = items.flatMap((item) =>
+    item.type === 'cook'
+      ? [item.recipe.authorUserId, ...item.cook.chefs]
+      : [item.recipe.authorUserId],
+  );
+  const { map: users } = useUsersById(userIds);
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
@@ -55,16 +65,22 @@ export default function Feed() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((item) => {
             if (item.type === 'cook') {
+              const chef = users.get(item.cook.chefs[0]) || users.get(item.recipe.authorUserId);
               return (
                 <CookActivityCard
                   key={`cook-${item.cook.cookId}`}
                   cook={item.cook}
                   recipe={item.recipe}
+                  chef={chef}
                 />
               );
             }
             return (
-              <RecipeCard key={`recipe-${item.recipe.recipeId}`} recipe={item.recipe} />
+              <RecipeCard
+                key={`recipe-${item.recipe.recipeId}`}
+                recipe={item.recipe}
+                author={users.get(item.recipe.authorUserId)}
+              />
             );
           })}
         </div>

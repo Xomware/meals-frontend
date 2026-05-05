@@ -2,12 +2,14 @@
 import Link from 'next/link';
 import { useRequireAuth } from '@/lib/auth-context';
 import { usePublicRecipes } from '@/lib/hooks';
+import { useUsersById } from '@/lib/use-users-by-id';
 import { RecipeCard } from '@/components/RecipeCard';
 import Loader from '@/components/Loader';
 
 export default function DiscoverPage() {
   const { isAuthenticated, isLoading: authLoading } = useRequireAuth();
   const { recipes, isLoading } = usePublicRecipes();
+  const { map: users } = useUsersById(recipes.map((r) => r.authorUserId));
   const dataReady = isAuthenticated && !isLoading;
 
   return (
@@ -27,7 +29,7 @@ export default function DiscoverPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {recipes.map((r) => (
-            <RecipeCard key={r.recipeId} recipe={r} />
+            <RecipeCard key={r.recipeId} recipe={r} author={users.get(r.authorUserId)} />
           ))}
         </div>
       )}
