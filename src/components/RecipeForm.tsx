@@ -52,7 +52,8 @@ export interface RecipeFormValues {
 }
 
 interface Props {
-  initial?: Recipe;
+  /** Partial because import drafts and edit-existing both feed this. */
+  initial?: Partial<Recipe>;
   submitLabel: string;
   onSubmit: (values: RecipeFormValues) => Promise<void>;
 }
