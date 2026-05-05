@@ -69,33 +69,35 @@ function UserPageInner() {
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-      <header className="flex items-center gap-4">
-        <div className="h-20 w-20 rounded-full overflow-hidden bg-zinc-800 border border-zinc-700 grid place-items-center shrink-0">
-          {profile.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <span className="h-full w-full grid place-items-center bg-gradient-to-br from-coral-500 to-flame-500 text-white text-2xl font-black uppercase">
-              {initial}
-            </span>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <h1 className="font-display text-2xl font-black tracking-tight truncate">
-            {profile.displayName || `@${profile.preferredUsername}`}
-          </h1>
-          {profile.preferredUsername && (
-            <p className="text-sm text-zinc-400">@{profile.preferredUsername}</p>
-          )}
+      <header className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex items-center gap-4 min-w-0 flex-1">
+          <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full overflow-hidden bg-zinc-800 border border-zinc-700 grid place-items-center shrink-0">
+            {profile.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="h-full w-full grid place-items-center bg-gradient-to-br from-coral-500 to-flame-500 text-white text-2xl font-black uppercase">
+                {initial}
+              </span>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-display text-xl sm:text-2xl font-black tracking-tight truncate">
+              {profile.displayName || `@${profile.preferredUsername}`}
+            </h1>
+            {profile.preferredUsername && (
+              <p className="text-sm text-zinc-400 truncate">@{profile.preferredUsername}</p>
+            )}
+          </div>
         </div>
         {!isSelf && (
-          <>
+          <div className="flex items-center gap-2 sm:shrink-0">
             <FriendButton targetUserId={profile.userId} />
             <UserActionsMenu
               targetUserId={profile.userId}
               targetHandle={profile.preferredUsername}
             />
-          </>
+          </div>
         )}
       </header>
 
