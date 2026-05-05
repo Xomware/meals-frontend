@@ -361,21 +361,26 @@ function PeopleSection({
               ? 'You'
               : name || (handle ? `@${handle}` : `${id.slice(0, 6)}…`);
             return (
-              <button
+              <span
                 key={id}
-                type="button"
-                onClick={() => (isMe ? undefined : onRemove(id))}
-                disabled={isMe}
-                className={`text-xs px-2.5 py-1 rounded-full border transition ${
+                className={`inline-flex items-center text-xs rounded-full border ${
                   isMe
-                    ? 'bg-coral-500/30 border-coral-500/60 text-coral-100 cursor-default'
-                    : 'bg-coral-500/20 border-coral-500/50 text-coral-200 hover:bg-coral-500/30'
+                    ? 'bg-coral-500/30 border-coral-500/60 text-coral-100'
+                    : 'bg-coral-500/20 border-coral-500/50 text-coral-200'
                 }`}
-                aria-label={isMe ? 'You (always included)' : `Remove ${display}`}
               >
-                {display}
-                {!isMe && <span className="ml-1 text-coral-300/70">×</span>}
-              </button>
+                <span className="px-2.5 py-1.5">{display}</span>
+                {!isMe && (
+                  <button
+                    type="button"
+                    onClick={() => onRemove(id)}
+                    aria-label={`Remove ${display}`}
+                    className="h-7 w-7 grid place-items-center text-base text-coral-200 hover:bg-coral-500/30 rounded-r-full transition focus:outline-none focus:ring-2 focus:ring-coral-400/50"
+                  >
+                    ×
+                  </button>
+                )}
+              </span>
             );
           })}
         </div>

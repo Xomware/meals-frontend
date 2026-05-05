@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useFriends } from '@/lib/hooks';
 import { useUsersById } from '@/lib/use-users-by-id';
+import { useAuth } from '@/lib/auth-context';
 import { usersSearchApi } from '@/lib/api';
 import { PublicUserProfile } from '@/lib/users';
 
@@ -35,6 +36,8 @@ export default function PeoplePickerModal({
   const [searchResults, setSearchResults] = useState<PublicUserProfile[]>([]);
   const [searching, setSearching] = useState(false);
 
+  const { user } = useAuth();
+  const callerSub = user?.sub ?? null;
   const { friends } = useFriends();
   // Resolve display profiles for friends + selected (selected may include
   // non-friends if the picker was used with handle search).
@@ -116,8 +119,13 @@ export default function PeoplePickerModal({
   });
 
   const seenInLists = new Set<string>([...selected, ...visibleFriendIds]);
+  // Self never shows up in search — the caller is always pinned as a chef
+  // by the consuming form, so listing themselves here is just confusing.
   const searchOnlyResults = searchResults.filter(
-    (u) => !seenInLists.has(u.userId) && !exclude.has(u.userId),
+    (u) =>
+      !seenInLists.has(u.userId) &&
+      !exclude.has(u.userId) &&
+      u.userId !== callerSub,
   );
 
   const selectedRows: { userId: string; profile: PublicUserProfile | undefined }[] = selected.map(
