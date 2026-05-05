@@ -6,7 +6,6 @@ import { useRequireAuth, useAuth } from '@/lib/auth-context';
 import { useRecipe } from '@/lib/hooks';
 import { RecipeForm, RecipeFormValues } from '@/components/RecipeForm';
 import { RecipeComments } from '@/components/RecipeComments';
-import { RatingStars } from '@/components/RatingStars';
 import LikeButton from '@/components/LikeButton';
 import { PrivacyBadge } from '@/components/PrivacyBadge';
 import {
@@ -21,6 +20,8 @@ import {
 } from '@/types';
 import { recipesApi } from '@/lib/api';
 import Loader from '@/components/Loader';
+import { IconRating, RATING_AXES, RatingAxisKey } from '@/components/IconRating';
+import { RateAxes } from '@/lib/api';
 
 export default function RecipeViewPage() {
   return (
@@ -38,8 +39,13 @@ function RecipeViewInner() {
   const { user } = useAuth();
   const { recipe, isLoading, error, refresh, edit, remove } = useRecipe(recipeId);
   const [editing, setEditing] = useState(false);
-  const [myRating, setMyRating] = useState<number>(0);
-  const [mySpiciness, setMySpiciness] = useState<number>(0);
+  const [myRatings, setMyRatings] = useState<Record<RatingAxisKey, number>>({
+    overall: 0,
+    spiciness: 0,
+    sweetness: 0,
+    saltiness: 0,
+    richness: 0,
+  });
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
 
   if (authLoading || !isAuthenticated) {
@@ -68,15 +74,12 @@ function RecipeViewInner() {
 
   const isAuthor = user?.sub === recipe.authorUserId;
 
-  const handleRate = async (axis: 'overall' | 'spiciness', n: number) => {
-    if (axis === 'overall') setMyRating(n);
-    else setMySpiciness(n);
+  const handleRate = async (axisKey: RatingAxisKey, n: number) => {
+    setMyRatings((prev) => ({ ...prev, [axisKey]: n }));
     setRatingSubmitting(true);
+    const axisCfg = RATING_AXES.find((a) => a.key === axisKey)!;
     try {
-      await recipesApi.rate(
-        recipe.recipeId,
-        axis === 'overall' ? { rating: n } : { spiciness: n },
-      );
+      await recipesApi.rate(recipe.recipeId, { [axisCfg.bodyKey]: n } as RateAxes);
       refresh();
     } finally {
       setRatingSubmitting(false);
@@ -256,44 +259,34 @@ function RecipeViewInner() {
           )}
 
           <div className="pt-2 border-t border-zinc-800 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-xs uppercase tracking-wider text-zinc-400 font-semibold">
-                  Overall
+            {RATING_AXES.map((axis) => {
+              const avg = (recipe as unknown as Record<string, number | null>)[axis.avgKey];
+              const count = (recipe as unknown as Record<string, number>)[axis.countKey] ?? 0;
+              const my = myRatings[axis.key];
+              return (
+                <div key={axis.key} className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs uppercase tracking-wider text-zinc-400 font-semibold">
+                      {axis.label}
+                    </div>
+                    {count > 0 && avg != null ? (
+                      <p className="text-[11px] text-zinc-500 mt-0.5">
+                        avg {avg.toFixed(1)} · {count} {count === 1 ? 'rating' : 'ratings'}
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-zinc-500 mt-0.5">no ratings yet</p>
+                    )}
+                  </div>
+                  <IconRating
+                    value={my}
+                    onChange={(n) => void handleRate(axis.key, n)}
+                    icon={axis.icon}
+                    size="md"
+                    label={`Rate ${axis.label.toLowerCase()}`}
+                  />
                 </div>
-                {recipe.ratingCount > 0 && recipe.avgRating != null && (
-                  <p className="text-[11px] text-zinc-500 mt-0.5">
-                    avg {recipe.avgRating.toFixed(1)} · {recipe.ratingCount} {recipe.ratingCount === 1 ? 'rating' : 'ratings'}
-                  </p>
-                )}
-              </div>
-              <RatingStars
-                value={myRating}
-                onChange={(n) => void handleRate('overall', n)}
-                size="md"
-                label="Rate this recipe"
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-xs uppercase tracking-wider text-zinc-400 font-semibold">
-                  Spiciness
-                </div>
-                {recipe.spicinessCount > 0 && recipe.spicinessAvg != null ? (
-                  <p className="text-[11px] text-zinc-500 mt-0.5">
-                    avg {recipe.spicinessAvg.toFixed(1)} · {recipe.spicinessCount} {recipe.spicinessCount === 1 ? 'rating' : 'ratings'}
-                  </p>
-                ) : (
-                  <p className="text-[11px] text-zinc-500 mt-0.5">no heat ratings yet</p>
-                )}
-              </div>
-              <RatingStars
-                value={mySpiciness}
-                onChange={(n) => void handleRate('spiciness', n)}
-                size="md"
-                label="Rate spiciness"
-              />
-            </div>
+              );
+            })}
             {ratingSubmitting && (
               <div className="text-[11px] text-zinc-500 italic">Saving…</div>
             )}

@@ -69,10 +69,27 @@ export interface RateRecipeResult {
   userId: string;
   rating: number | null;
   spiciness: number | null;
+  sweetness: number | null;
+  saltiness: number | null;
+  richness: number | null;
   avgRating: number | null;
   ratingCount: number;
   spicinessAvg: number | null;
   spicinessCount: number;
+  sweetnessAvg: number | null;
+  sweetnessCount: number;
+  saltinessAvg: number | null;
+  saltinessCount: number;
+  richnessAvg: number | null;
+  richnessCount: number;
+}
+
+export interface RateAxes {
+  rating?: number;
+  spiciness?: number;
+  sweetness?: number;
+  saltiness?: number;
+  richness?: number;
 }
 
 export interface ListPublicFilters {
@@ -136,10 +153,7 @@ export const recipesApi = {
     apiPost<Recipe>('/recipes/edit', { recipeId, ...fields }),
   delete: (recipeId: string): Promise<void> =>
     apiPost<void>('/recipes/delete', { recipeId }),
-  rate: (
-    recipeId: string,
-    axes: { rating?: number; spiciness?: number },
-  ): Promise<RateRecipeResult> =>
+  rate: (recipeId: string, axes: RateAxes): Promise<RateRecipeResult> =>
     apiPost<RateRecipeResult>('/recipes/rate', { recipeId, ...axes }),
   like: (recipeId: string): Promise<{ recipeId: string; likeCount: number; likedByMe: boolean }> =>
     apiPost('/recipes/like', { recipeId }),

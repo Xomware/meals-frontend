@@ -211,6 +211,12 @@ export interface Recipe {
   ratingCount: number;
   spicinessAvg: number | null;
   spicinessCount: number;
+  sweetnessAvg: number | null;
+  sweetnessCount: number;
+  saltinessAvg: number | null;
+  saltinessCount: number;
+  richnessAvg: number | null;
+  richnessCount: number;
   createdAt: string;
   updatedAt: string;
 }
