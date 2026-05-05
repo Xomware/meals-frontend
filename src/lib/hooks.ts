@@ -5,6 +5,7 @@ import {
   EditRecipeInput,
   LogCookInput,
   commentsApi,
+  cookCommentsApi,
   cooksApi,
   friendsApi,
   recipesApi,
@@ -17,6 +18,7 @@ const FEED_KEY = 'friends:feed';
 const RECIPES_KEY = 'recipes';
 const recipeKey = (id: string) => ['recipe', id] as const;
 const commentsKey = (id: string) => ['recipe-comments', id] as const;
+const cookCommentsKey = (id: string) => ['cook-comments', id] as const;
 const COOKS_MINE_KEY = 'cooks:mine';
 const cooksForRecipeKey = (id: string) => ['cooks:recipe', id] as const;
 const cookKey = (id: string) => ['cook', id] as const;
@@ -178,6 +180,30 @@ export function useRecipeComments(recipeId: string | null) {
       if (!recipeId) return;
       await commentsApi.delete(recipeId, commentId);
       mutate(commentsKey(recipeId));
+    },
+  };
+}
+
+export function useCookComments(cookId: string | null) {
+  const { isAuthenticated } = useAuth();
+  const key = cookId && isAuthenticated ? cookCommentsKey(cookId) : null;
+  const { data, error, isLoading } = useSWR<Awaited<ReturnType<typeof cookCommentsApi.list>>>(
+    key,
+    () => (cookId ? cookCommentsApi.list(cookId) : Promise.resolve([])),
+  );
+  return {
+    comments: data ?? [],
+    isLoading,
+    error,
+    addComment: async (text: string) => {
+      if (!cookId) return;
+      await cookCommentsApi.add(cookId, text);
+      mutate(cookCommentsKey(cookId));
+    },
+    deleteComment: async (commentId: string) => {
+      if (!cookId) return;
+      await cookCommentsApi.delete(cookId, commentId);
+      mutate(cookCommentsKey(cookId));
     },
   };
 }

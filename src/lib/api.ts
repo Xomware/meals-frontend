@@ -159,3 +159,20 @@ export const cooksApi = {
   delete: (cookId: string): Promise<void> =>
     apiPost<void>('/cooks/delete', { cookId }),
 };
+
+export interface CookComment {
+  cookId: string;
+  commentId: string;
+  userId: string;
+  text: string;
+  createdAt: string;
+}
+
+export const cookCommentsApi = {
+  list: (cookId: string): Promise<CookComment[]> =>
+    apiPost<CookComment[]>('/cooks/comments-list', { cookId }),
+  add: (cookId: string, text: string): Promise<CookComment> =>
+    apiPost<CookComment>('/cooks/comment-add', { cookId, text }),
+  delete: (cookId: string, commentId: string): Promise<void> =>
+    apiPost<void>('/cooks/comment-delete', { cookId, commentId }),
+};
