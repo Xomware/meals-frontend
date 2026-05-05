@@ -81,6 +81,13 @@ export interface ListPublicFilters {
   maxTimeMinutes?: number;
 }
 
+export type RecipeDraft = CreateRecipeInput;
+
+export interface ImportRecipeResult {
+  draft: RecipeDraft;
+  source: 'json-ld' | 'claude';
+}
+
 export interface RecipesPublicPage {
   items: Recipe[];
   nextCursor: string | null;
@@ -136,6 +143,10 @@ export const recipesApi = {
     apiPost<RateRecipeResult>('/recipes/rate', { recipeId, ...axes }),
   like: (recipeId: string): Promise<{ recipeId: string; likeCount: number; likedByMe: boolean }> =>
     apiPost('/recipes/like', { recipeId }),
+  importUrl: (url: string): Promise<ImportRecipeResult> =>
+    apiPost<ImportRecipeResult>('/recipes/import-url', { url }),
+  importText: (text: string): Promise<ImportRecipeResult> =>
+    apiPost<ImportRecipeResult>('/recipes/import-text', { text }),
 };
 
 export const commentsApi = {
