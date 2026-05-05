@@ -1,10 +1,13 @@
 'use client';
 import Link from 'next/link';
 import { Cook, Recipe } from '@/types';
+import { PublicUserProfile } from '@/lib/users';
 
 interface Props {
   cook: Cook;
   recipe: Recipe;
+  /** Profile of the cook's chef (the person who logged the cook). */
+  chef?: PublicUserProfile | null;
 }
 
 /**
@@ -14,13 +17,16 @@ interface Props {
  * Tap goes to the cook detail (`/cooks/view`), with a secondary link
  * to the recipe itself in the body.
  */
-export function CookActivityCard({ cook, recipe }: Props) {
+export function CookActivityCard({ cook, recipe, chef }: Props) {
   const date = new Date(cook.cookedAt).toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
-  const chefHandle = recipe.authorHandle; // best signal we have for "who cooked"
+  const chefHandle = chef?.preferredUsername || recipe.authorHandle;
+  const chefName = chef?.displayName;
+  const chefAvatar = chef?.avatarUrl;
+  const chefInitial = (chefName || chefHandle || '?').charAt(0).toUpperCase();
 
   return (
     <Link
@@ -28,8 +34,15 @@ export function CookActivityCard({ cook, recipe }: Props) {
       className="group block bg-zinc-900/60 border-l-2 border-coral-500/50 border-t border-r border-b border-zinc-800 hover:border-coral-500/50 rounded-xl p-4 transition focus:outline-none focus:ring-2 focus:ring-coral-400/50"
     >
       <div className="flex items-start gap-3">
-        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-coral-500 to-flame-500 grid place-items-center text-white text-xl shrink-0">
-          🔥
+        <div className="h-10 w-10 rounded-full overflow-hidden bg-zinc-800 border border-zinc-700 grid place-items-center text-white text-xl shrink-0">
+          {chefAvatar ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={chefAvatar} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="h-full w-full grid place-items-center bg-gradient-to-br from-coral-500 to-flame-500 text-sm font-black">
+              {chefInitial}
+            </span>
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs text-zinc-500 uppercase tracking-wider font-semibold mb-0.5">
@@ -38,7 +51,7 @@ export function CookActivityCard({ cook, recipe }: Props) {
           <h3 className="font-bold text-base text-zinc-100 truncate group-hover:text-coral-300 transition">
             {chefHandle ? (
               <>
-                <span className="text-coral-400">@{chefHandle}</span>{' '}
+                <span className="text-coral-400">{chefName || `@${chefHandle}`}</span>{' '}
                 <span className="text-zinc-400 font-normal">cooked</span>{' '}
                 {recipe.name}
               </>

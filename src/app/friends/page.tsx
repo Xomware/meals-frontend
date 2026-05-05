@@ -3,7 +3,8 @@ import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { useRequireAuth } from '@/lib/auth-context';
 import { useFriends } from '@/lib/hooks';
-import { usersApi } from '@/lib/users';
+import { useUsersById } from '@/lib/use-users-by-id';
+import { usersApi, PublicUserProfile } from '@/lib/users';
 import Loader from '@/components/Loader';
 
 const HANDLE_REGEX = /^[a-z0-9_]{3,20}$/;
@@ -25,6 +26,15 @@ export default function FriendsPage() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+
+  // Resolve every userId on this page to a public profile in one
+  // round trip — friends, incoming, outgoing.
+  const allIds = [
+    ...friends.map((f) => f.userId),
+    ...incomingPending.map((r) => r.userId),
+    ...outgoingPending.map((r) => r.userId),
+  ];
+  const { map: users } = useUsersById(allIds);
 
   const dataReady = isAuthenticated && !isLoading;
 
@@ -116,6 +126,7 @@ export default function FriendsPage() {
                   <UserRow
                     key={req.userId}
                     userId={req.userId}
+                    profile={users.get(req.userId)}
                     timestamp={req.requestedAt}
                     timestampLabel="requested"
                     actions={
@@ -149,6 +160,7 @@ export default function FriendsPage() {
                   <UserRow
                     key={f.userId}
                     userId={f.userId}
+                    profile={users.get(f.userId)}
                     timestamp={f.since}
                     timestampLabel="friends since"
                     actions={
@@ -171,6 +183,7 @@ export default function FriendsPage() {
                   <UserRow
                     key={req.userId}
                     userId={req.userId}
+                    profile={users.get(req.userId)}
                     timestamp={req.requestedAt}
                     timestampLabel="sent"
                     actions={
@@ -189,34 +202,57 @@ export default function FriendsPage() {
 
 function UserRow({
   userId,
+  profile,
   timestamp,
   timestampLabel,
   actions,
 }: {
   userId: string;
+  profile: PublicUserProfile | undefined;
   timestamp?: string;
   timestampLabel?: string;
   actions: React.ReactNode;
 }) {
-  // Truncate the userId for display until we resolve handles. Click goes
-  // nowhere yet — handle/profile lookup by userId would need a new endpoint.
+  const handle = profile?.preferredUsername;
+  const name = profile?.displayName;
+  const avatarUrl = profile?.avatarUrl;
+  const initial = (name || handle || '?').charAt(0).toUpperCase();
+  const headline = name || (handle ? `@${handle}` : `${userId.slice(0, 8)}…`);
+  const subline = name && handle ? `@${handle}` : null;
+
+  const inner = (
+    <div className="min-w-0 flex items-center gap-3 flex-1">
+      <div className="h-9 w-9 rounded-full overflow-hidden bg-zinc-800 grid place-items-center shrink-0">
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <span className="h-full w-full grid place-items-center bg-gradient-to-br from-coral-500 to-flame-500 text-white font-black text-sm">
+            {initial}
+          </span>
+        )}
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-zinc-100 truncate">{headline}</p>
+        {subline && <p className="text-[11px] text-zinc-500">{subline}</p>}
+        {timestamp && (
+          <p className="text-[11px] text-zinc-500">
+            {timestampLabel} {new Date(timestamp).toLocaleDateString()}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <li className="flex items-center justify-between gap-3 bg-zinc-900/60 border border-zinc-800 rounded-lg px-3 py-2">
-      <div className="min-w-0 flex items-center gap-3">
-        <div className="h-9 w-9 rounded-full bg-gradient-to-br from-coral-500 to-flame-500 grid place-items-center text-white font-black text-sm shrink-0">
-          {userId.charAt(0).toUpperCase()}
-        </div>
-        <div className="min-w-0">
-          <code className="text-sm font-mono text-zinc-300 truncate block">
-            {userId.slice(0, 8)}…
-          </code>
-          {timestamp && (
-            <p className="text-[11px] text-zinc-500">
-              {timestampLabel} {new Date(timestamp).toLocaleDateString()}
-            </p>
-          )}
-        </div>
-      </div>
+      {handle ? (
+        <Link href={`/u/view?handle=${encodeURIComponent(handle)}`} className="contents">
+          {inner}
+        </Link>
+      ) : (
+        inner
+      )}
       <div className="flex gap-2 shrink-0">{actions}</div>
     </li>
   );
