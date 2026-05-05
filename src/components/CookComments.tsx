@@ -1,12 +1,13 @@
 'use client';
 import { useState } from 'react';
-import { useRecipeComments } from '@/lib/hooks';
+import { useCookComments } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
 import { useUsersById, userLabel } from '@/lib/use-users-by-id';
 import MentionText from './MentionText';
+import type { CookComment } from '@/lib/api';
 
 interface Props {
-  recipeId: string;
+  cookId: string;
 }
 
 const inputCls =
@@ -24,10 +25,11 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export function RecipeComments({ recipeId }: Props) {
+export function CookComments({ cookId }: Props) {
   const { user } = useAuth();
-  const { comments, isLoading, addComment, deleteComment } = useRecipeComments(recipeId);
-  const { map: users } = useUsersById(comments.map((c) => c.userId));
+  const { comments, isLoading, addComment, deleteComment } = useCookComments(cookId);
+  const typedComments = comments as CookComment[];
+  const { map: users } = useUsersById(typedComments.map((c) => c.userId));
   const [draft, setDraft] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,21 +56,21 @@ export function RecipeComments({ recipeId }: Props) {
           Comments
         </h3>
         <span className="text-xs text-zinc-500">
-          {comments.length === 0
-            ? 'no notes yet'
-            : `${comments.length} ${comments.length === 1 ? 'note' : 'notes'}`}
+          {typedComments.length === 0
+            ? 'no comments yet'
+            : `${typedComments.length} ${typedComments.length === 1 ? 'comment' : 'comments'}`}
         </span>
       </div>
 
       {isLoading ? (
         <div className="text-zinc-500 text-sm italic">Loading…</div>
-      ) : comments.length === 0 ? (
+      ) : typedComments.length === 0 ? (
         <div className="text-zinc-500 text-sm italic border border-dashed border-zinc-800 rounded-lg p-3">
-          Drop a note when you cook this — what worked, what flopped, what you&apos;d swap.
+          Tag a friend with <span className="text-coral-300">@handle</span> or drop a note.
         </div>
       ) : (
         <ul className="space-y-2">
-          {comments.map((c) => {
+          {typedComments.map((c) => {
             const mine = user?.sub === c.userId;
             const profile = users.get(c.userId);
             const label = mine ? 'You' : userLabel(profile);
@@ -125,7 +127,7 @@ export function RecipeComments({ recipeId }: Props) {
         <textarea
           rows={2}
           maxLength={2000}
-          placeholder="Add a note… (e.g. 'Subbed quinoa for rice, was great')"
+          placeholder="Add a comment… use @handle to tag a friend"
           className={inputCls + ' resize-y'}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -138,7 +140,7 @@ export function RecipeComments({ recipeId }: Props) {
             disabled={submitting || !draft.trim()}
             className="text-xs font-semibold uppercase tracking-wider bg-coral-500 hover:bg-coral-400 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded-md transition focus:outline-none focus:ring-2 focus:ring-coral-400/50"
           >
-            {submitting ? 'Posting…' : 'Post note'}
+            {submitting ? 'Posting…' : 'Post comment'}
           </button>
         </div>
       </form>

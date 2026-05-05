@@ -6,6 +6,7 @@ import { useRequireAuth, useAuth } from '@/lib/auth-context';
 import { useCook, useRecipe } from '@/lib/hooks';
 import { CookForm, CookFormValues } from '@/components/CookForm';
 import { RatingStars } from '@/components/RatingStars';
+import { CookComments } from '@/components/CookComments';
 import Loader from '@/components/Loader';
 
 export default function CookViewPage() {
@@ -189,6 +190,10 @@ function CookViewInner() {
             </button>
           </section>
         )}
+
+        <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 brand-stamp">
+          <CookComments cookId={cook.cookId} />
+        </section>
       </main>
     </div>
   );
