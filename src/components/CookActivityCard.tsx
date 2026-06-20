@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { Cook, Recipe } from '@/types';
 import { PublicUserProfile } from '@/lib/users';
+import { AuthorRow, MacroPanel, timeAgo } from './FeedBits';
 
 interface Props {
   cook: Cook;
@@ -11,56 +12,58 @@ interface Props {
 }
 
 /**
- * Social-feed post for "X cooked Recipe Y": author header, the recipe being
- * made, an optional hero photo, notes, and a stats row. Visually distinct
- * from RecipeCard so the feed reads as activity, not catalog.
- *
- * Tap goes to the cook detail (`/cooks/view`).
+ * Social-feed post for "X cooked Recipe Y": author header, the dish, an
+ * optional hero photo, the cook's flavor ratings, notes, and the recipe's
+ * nutrition. Visually distinct from a recipe post so the feed reads as
+ * activity, not catalog. Tap → cook detail (`/cooks/view`).
  */
 export function CookActivityCard({ cook, recipe, chef }: Props) {
-  const date = new Date(cook.cookedAt).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-  const chefHandle = chef?.preferredUsername || recipe.authorHandle;
-  const chefName = chef?.displayName;
-  const chefAvatar = chef?.avatarUrl;
-  const chefInitial = (chefName || chefHandle || '?').charAt(0).toUpperCase();
-  const chefLabel = chefName || (chefHandle ? `@${chefHandle}` : 'Someone');
+  const handle = chef?.preferredUsername || recipe.authorHandle || null;
+  const name = chef?.displayName || null;
+  const avatarUrl = chef?.avatarUrl || null;
+
+  const ratingChips = [
+    { label: '★ Overall', value: cook.rating, cls: 'text-coral-300' },
+    { label: '🌶 Spicy', value: cook.spiciness, cls: 'text-flame-400' },
+    { label: '🍬 Sweet', value: cook.sweetness, cls: 'text-pink-300' },
+    { label: '🧂 Salty', value: cook.saltiness, cls: 'text-sky-300' },
+    { label: '🧈 Rich', value: cook.richness, cls: 'text-amber-300' },
+  ].filter((c) => c.value != null);
 
   return (
     <Link
       href={`/cooks/view?id=${encodeURIComponent(cook.cookId)}`}
       className="group block bg-zinc-900/60 border border-zinc-800 hover:border-coral-500/50 rounded-2xl overflow-hidden transition hover:shadow-lg hover:shadow-coral-500/10 focus:outline-none focus:ring-2 focus:ring-coral-400/50"
     >
-      {/* Header */}
-      <div className="flex items-center gap-3 p-5 pb-3">
-        <div className="h-9 w-9 rounded-full overflow-hidden bg-zinc-800 border border-zinc-700 grid place-items-center text-white shrink-0">
-          {chefAvatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={chefAvatar} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <span className="h-full w-full grid place-items-center bg-gradient-to-br from-coral-500 to-flame-500 text-sm font-black">
-              {chefInitial}
+      {/* Author header */}
+      <div className="p-4 pb-3">
+        <AuthorRow
+          handle={handle}
+          name={name}
+          avatarUrl={avatarUrl}
+          subtitle={
+            <span className="flex items-center gap-1.5">
+              <span>{timeAgo(cook.cookedAt)}</span>
+              <span className="text-zinc-700">·</span>
+              <span>logged a cook</span>
             </span>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm leading-tight truncate">
-            <span className="font-semibold text-coral-400">{chefLabel}</span>
-            <span className="text-zinc-400"> cooked this</span>
-          </p>
-          <p className="text-xs text-zinc-500 leading-tight mt-0.5">{date}</p>
-        </div>
-        <span className="text-[11px] uppercase tracking-wider text-zinc-600 font-semibold shrink-0">
-          Cook
-        </span>
+          }
+          right={
+            cook.rating != null ? (
+              <span className="flex items-center gap-1 bg-zinc-950/60 border border-zinc-800 rounded-full px-2.5 py-1 text-sm shrink-0">
+                <span className="text-coral-300" aria-hidden>★</span>
+                <span className="text-zinc-100 font-bold">{cook.rating}</span>
+                <span className="text-zinc-500 text-xs">/5</span>
+              </span>
+            ) : undefined
+          }
+        />
       </div>
 
-      {/* Recipe being cooked */}
-      <div className="px-5 pb-3">
-        <h3 className="font-display text-lg font-black tracking-wide text-zinc-100 group-hover:text-coral-300 transition">
+      {/* The dish */}
+      <div className="px-4 pb-3">
+        <p className="text-[11px] uppercase tracking-wider text-zinc-600 font-semibold">cooked</p>
+        <h3 className="font-display text-xl font-black tracking-wide text-zinc-100 group-hover:text-coral-300 transition">
           {recipe.name}
         </h3>
       </div>
@@ -71,30 +74,46 @@ export function CookActivityCard({ cook, recipe, chef }: Props) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={cook.photoUrl}
-            alt={`${chefLabel}'s cook of ${recipe.name}`}
+            alt={`Cook of ${recipe.name}`}
             className="w-full aspect-[4/3] object-cover"
           />
         </div>
       )}
 
-      {/* Body */}
-      <div className={`px-5 pb-5 ${cook.photoUrl ? 'pt-4' : 'pt-0'}`}>
-        {cook.notes && (
-          <p className="text-sm text-zinc-300 line-clamp-3">{cook.notes}</p>
+      <div className="p-4 pt-3 space-y-3">
+        {/* Notes */}
+        {cook.notes && <p className="text-sm text-zinc-300 line-clamp-4">{cook.notes}</p>}
+
+        {/* The cook's flavor ratings */}
+        {ratingChips.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {ratingChips.map((c) => (
+              <span
+                key={c.label}
+                className="inline-flex items-center gap-1 bg-zinc-800/60 rounded-md px-2 py-0.5 text-xs"
+              >
+                <span className={c.cls}>{c.label}</span>
+                <span className="text-zinc-200 font-semibold">{c.value}</span>
+              </span>
+            ))}
+          </div>
         )}
-        <div className="text-xs text-zinc-500 flex items-center gap-4 mt-3">
-          {cook.rating != null && (
-            <span className="flex items-center gap-1">
-              <span className="text-coral-300">★</span>
-              <span className="text-zinc-300 font-semibold">{cook.rating}/5</span>
-            </span>
-          )}
+
+        {/* Recipe nutrition — data even when there's no photo */}
+        <MacroPanel macros={recipe.macros} scope={recipe.macrosScope} />
+
+        {/* Footer */}
+        <div className="flex items-center gap-5 pt-2 border-t border-zinc-800/60 text-sm text-zinc-400">
           {cook.diners.length > 0 && (
-            <span>
-              <span className="text-zinc-300 font-semibold">{cook.diners.length}</span>{' '}
-              {cook.diners.length === 1 ? 'diner' : 'diners'}
+            <span className="flex items-center gap-1.5">
+              <span aria-hidden>🍽</span>
+              <span className="text-zinc-300 font-semibold">{cook.diners.length}</span>
+              <span className="text-zinc-500">{cook.diners.length === 1 ? 'diner' : 'diners'}</span>
             </span>
           )}
+          <span className="ml-auto text-coral-400 font-semibold group-hover:text-coral-300">
+            View cook →
+          </span>
         </div>
       </div>
     </Link>
