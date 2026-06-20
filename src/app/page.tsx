@@ -31,7 +31,7 @@ export default function Feed() {
   const { map: users } = useUsersById(userIds);
 
   return (
-    <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+    <main className="max-w-xl mx-auto px-4 py-6 space-y-6">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <h2 className="font-display text-2xl font-black uppercase tracking-wide">Feed</h2>
@@ -62,7 +62,7 @@ export default function Feed() {
       ) : items.length === 0 ? (
         <EmptyFeed friendCount={friendCount} />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex flex-col gap-5">
           {items.map((item) => {
             if (item.type === 'cook') {
               const chef = users.get(item.cook.chefs[0]) || users.get(item.recipe.authorUserId);
@@ -80,6 +80,7 @@ export default function Feed() {
                 key={`recipe-${item.recipe.recipeId}`}
                 recipe={item.recipe}
                 author={users.get(item.recipe.authorUserId)}
+                variant="feed"
               />
             );
           })}
